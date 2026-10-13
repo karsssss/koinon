@@ -6,7 +6,7 @@ A private, invite-only, mobile-first social gaming PWA for one group of eight fr
 
 ## Status
 
-**Planning.** There is no application code yet. See [CURRENT.md](CURRENT.md).
+**Slice 1 (wallet, daily check-in, transfers, feed) runs locally with demo profiles.** Real Clerk sign-in still needs keys. See [CURRENT.md](CURRENT.md).
 
 ## Documentation
 
@@ -24,15 +24,24 @@ A private, invite-only, mobile-first social gaming PWA for one group of eight fr
 
 React · TypeScript · Vite · Tailwind CSS v4 · shadcn/ui · Convex · Clerk · vite-plugin-pwa · Vitest · convex-test · Playwright
 
-## Getting started (after P0 scaffolding exists)
+## Getting started (local, no accounts needed)
 
 ```bash
 npm install
-npx convex dev          # first run: log in and create the dev deployment
-npm run dev             # Vite dev server
-npm test                # unit + backend tests
-npm run e2e             # Playwright
-npm run sim -- --scenario S0 --days 90 --seeds 500 --seed 42
+npx convex dev --once     # first run creates an anonymous LOCAL Convex deployment (.env.local)
+npm run demo:setup        # NON-PRODUCTION: enables the 8 demo profiles and seeds them
+echo VITE_AUTH_MODE=demo >> .env.local
+npx convex dev            # terminal 1: local backend + function push on save
+npm run dev               # terminal 2: http://localhost:5173
 ```
 
-Required environment variables are listed under §7 of the architecture doc and will be documented in `.env.example`.
+Checks:
+
+```bash
+npm run typecheck && npm run lint && npm test   # domain, simulator and convex-test suites
+npm run build
+npx playwright install chromium && npm run e2e  # production build + local backend, 360px and desktop
+npm run demo:reset                              # wipe and reseed the demo data
+```
+
+Real sign-in uses Clerk (ADR-002). Set `VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, then set `CLERK_JWT_ISSUER_DOMAIN`, `DEMO_MODE=false` and `DEMO_JWKS=none` on the deployment (ADR-013). Run `npx convex run setup:initGroup` once with the group timezone (OD-2).

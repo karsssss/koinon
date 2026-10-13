@@ -1,68 +1,33 @@
 # CURRENT
 
-Updated: 2026-10-13 · Phase: **P3 economy simulator done** · Code: `shared/domain/` (ledger, bet and season rules) and `sim/`; no web app yet
+Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Slice 1 implemented and tested locally**
 
 ## Done
-- Product, economy, games, architecture, design and decisions docs drafted (`docs/`).
-- Stack evaluated against current official docs. Proposed choice: **Convex + Clerk** (ADR-001, ADR-002).
-- **Economy simulator (P3)**, deterministic and seeded. 8 players; 30/90/180 days; low/medium/high engagement; sensitivity variants.
-  - Results: [docs/SIMULATION.md](docs/SIMULATION.md), and the generated [sim/reports/REPORT.md](sim/reports/REPORT.md).
-  - 5,600 runs and 15.6 M transactions validated, with 0 invariant violations.
-  - Reproduce: `npm test` and `npm run sim:report`.
-  - Findings were added to the OD-3, OD-7, OD-8, OD-11 and OD-13 entries, plus a new OD-14 for the 5-minute window.
+- Planning docs (`docs/`), plus the economy simulator (P3, [docs/SIMULATION.md](docs/SIMULATION.md)).
+- **Slice 1: private PWA, first vertical slice**:
+  - **App:** React 19, Vite 8 and Tailwind v4 with the DESIGN tokens and shadcn/ui (Radix). A responsive **Home** (balance, daily check-in, activity feed, group balances) and **Wallet** (balance, send coins, paginated history). Bottom tab bar on mobile; side nav at ≥1024px.
+  - **Auth:** Clerk integration (`ConvexProviderWithClerk`) is wired in. A **non-production demo sign-in** serves the 8 seeded profiles (ADR-012).
+  - **Membership and authorization:** invite-only membership with a seat cap and an `ADMIN_EMAIL` bootstrap. Every public function uses the auth wrappers (`authedQuery`, `memberQuery`, `memberMutation`, `adminMutation`).
+  - **Ledger:** a server-authoritative double-entry ledger with a single write path (`convex/ledger/post.ts`), reusing `shared/domain` validation. Idempotency keys and a nightly audit cron.
+  - **Daily check-in:** +10 once per group day, computed on the server, DST-safe.
+  - **Transfers:** request-ID idempotency, insufficient-funds protection, and a feed event for each check-in or transfer.
+- **Verification (2026-10-13):**
+  - `npm run typecheck` ✓.
+  - `npm run lint` ✓.
+  - `npm test`: **77/77** (domain + simulator 51, convex-test backend 26).
+  - `npm run build` ✓ (JS 165 KB gzip).
+  - `npm run e2e`: **8/8**, 2 skipped by design. It runs the production build on a local backend at 360px and 1280px, and covers sign-in, check-in, two-user live sync, the transfer UI, the overdraft guard, and real-backend concurrency and duplicate requests. axe reports 0 WCAG A/AA violations.
 
-## Waiting on the owner
-1. Review the docs, then accept or amend the ADRs in `docs/DECISIONS.md`.
-2. Answer the ★ open decisions: OD-1 digest mechanic, OD-2 timezone, OD-3 milestone basis, OD-4 transparency, OD-6 weekly re-login.
-   The simulation also proposes changes to OD-3, OD-11 and OD-13 for review.
-3. Create accounts and projects (I can't do this step): Convex team/project, Clerk application (set sign-up mode to **Invite-only** and enable **email code**), Vercel project, and the GitHub remote.
+## Blockers (owner)
+| Blocker | Blocks |
+|---|---|
+| **Clerk application** (Invite-only mode, email code, Convex integration) and its publishable key | Real sign-in. Clerk keyless mode was removed (Aug 2026). |
+| Convex cloud project and Vercel project | Any non-local deployment |
+| OD-2 group timezone | Production `setup:initGroup` (demo uses UTC) |
+| OD-1 digest definition | Daily digest (+20) |
 
-## Blockers
-| Blocker | Blocks | Owner |
-|---|---|---|
-| ADR approval | Everything | Owner |
-| Convex, Clerk, Vercel accounts | P0 | Owner |
-| OD-2 timezone | Slice 1 config (a default is possible) | Owner |
-| OD-1 digest definition | P2 digest | Owner |
-| An iOS device with the PWA installed, for push testing | P4 | Owner + group |
+## Not in this slice
+Digest, bets, push, seasons, PWA service worker, invite UI (the admin mutation exists), and rate limits.
 
-## First end-to-end slice: Slice 1 "First Coin"
-
-Goal: an invited member signs in on a phone, gets 1 coin, checks in for +10, and sees the balance, history, and leaderboard update live. Everything runs through the production ledger path.
-
-**In scope**
-- P0 scaffold:
-  - Vite + React + TS (strict), Tailwind v4 + shadcn/ui, and the DESIGN tokens.
-  - React Router, with BottomNav routes Today/Wallet/People. Bets and Season are placeholders.
-- Tooling:
-  - ESLint and Prettier; Vitest, convex-test, Playwright, and fast-check.
-  - GitHub Actions CI and a Vercel production deploy.
-- Clerk in Invite-only mode with email-code sign-in. `ConvexProviderWithClerk`. A `members` gate and seat cap in Convex. The admin is bootstrapped via `ADMIN_EMAIL`.
-- Admin: invite by email (a Convex action calling the Clerk Invitations API, plus an `invites` row), and a member list.
-- `groupConfig` singleton (timezone, rolloverHour = 4, seatCap = 8).
-- `shared/domain`: `groupDay()`, posting balance and limit checks, and the invariant checker.
-- The ledger core:
-  - `accounts`, `transactions`, `postings`, and idempotency.
-  - `postTransaction()` and `assertLedgerInvariants()`.
-  - The nightly `ledger.audit` cron.
-- **GENESIS** (+1, once per member) on first activation. **CHECKIN** (+10, once per group day).
-- Screens:
-  - **Today**: check-in button, claimed state, countdown to rollover, balance.
-  - **Wallet**: balance and paginated ledger history.
-  - **People**: members and the wallet leaderboard.
-- PWA manifest and icons, so the app is installable. No push yet.
-
-**Out of scope:** digest, transfers, bets, push, seasons, feed, milestone UI, light theme.
-
-**Acceptance criteria**
-1. An invited email can sign in with a code on mobile. A non-invited email can't create an account, and the member count never exceeds `seatCap`.
-2. A member's first sign-in creates exactly one member and one GENESIS (+1), even with concurrent first loads from two devices (tested in convex-test).
-3. Check-in credits +10 once per group day. A repeat claim returns `ALREADY_CLAIMED` without minting. Rollover happens at 04:00 in the group timezone. Unit tests cover the spring and autumn DST transitions and the edges at 03:59/04:00.
-4. The Wallet balance equals the sum of postings. History shows GENESIS and CHECKIN with their group day.
-5. The leaderboard updates live in a second browser context when another member checks in (Playwright).
-6. Invariants I1–I5, I7, I9 and I10 are asserted after every backend test. The audit function, invoked directly, reports clean, and it reports any tampering with a cached balance.
-7. Lighthouse (mobile) passes the installable check with accessibility ≥ 95. Initial JS is ≤ 170 KB gzip. axe finds no violations.
-8. CI is green (typecheck, lint, unit, convex-test, Playwright mobile and desktop), and the app is live at the production URL.
-
-## Next after Slice 1
-P2 economy core and P3 simulator, run in parallel. See the roadmap in [docs/PRD.md §9](docs/PRD.md#9-roadmap).
+## Next
+See the audit section below once it is written; otherwise the next step is the P2 economy core.

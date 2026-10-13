@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* Koinon design tokens (docs/DESIGN.md §2). Dark-first; there is no light theme in the MVP. */
+:root {
+  color-scheme: dark;
+  --bg: oklch(0.145 0.005 270);
+  --surface-1: oklch(0.185 0.006 270);
+  --surface-2: oklch(0.225 0.007 270);
+  --border: oklch(0.3 0.008 270);
+  --text: oklch(0.96 0.003 270);
+  --text-muted: oklch(0.72 0.01 270);
+  --accent: oklch(0.82 0.13 85); /* coin gold */
+  --accent-fg: oklch(0.2 0.02 85);
+  --positive: oklch(0.78 0.14 155);
+  --negative: oklch(0.7 0.17 25);
+  --warning: oklch(0.83 0.14 75);
+  --info: oklch(0.75 0.11 240);
+  --focus: var(--accent);
+  --shadow-sheet: 0 -8px 32px oklch(0 0 0 / 0.45);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+}
+
+/*
+ * Tailwind/shadcn mapping. shadcn uses `accent` for subtle hover surfaces, so the DESIGN gold
+ * `--accent` is exposed as `primary` (and `gold`); Tailwind `accent` is surface-2.
+ */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface-1);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface-1);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-fg);
+  --color-gold: var(--accent);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--negative);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--focus);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-display: 3rem;
+  --text-display--line-height: 1.15;
+  --shadow-sheet: var(--shadow-sheet);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

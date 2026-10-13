@@ -2,3 +2,10 @@ node_modules/
 sim/out/
 *.log
 .DS_Store
+
+.env.local
+
+.convex/
+dist/
+test-results/
+playwright-report/

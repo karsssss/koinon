@@ -1,0 +1,21 @@
+{
+  // Used by the Convex CLI when it typechecks functions before pushing.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["./**/*", "../shared/**/*"],
+  "exclude": ["./_generated", "../shared/**/*.test.ts"]
+}

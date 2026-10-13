@@ -1,10 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "types": ["node"],
+    "types": [
+      "node",
+      "vite/client"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -16,5 +22,11 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["shared/**/*.ts", "sim/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": [
+    "shared/**/*.ts",
+    "sim/**/*.ts",
+    "scripts/**/*.ts",
+    "*.config.ts",
+    "eslint.config.js"
+  ]
 }

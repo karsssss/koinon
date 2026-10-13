@@ -1,4 +1,4 @@
-import { House, Wallet } from "lucide-react";
+import { House, Swords, Wallet } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 import { useAuthUi } from "@/auth/context";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,7 @@ import { Avatar } from "./Avatar";
 
 const NAV = [
   { to: "/", label: "Home", icon: House, end: true },
+  { to: "/bets", label: "Bets", icon: Swords, end: false },
   { to: "/wallet", label: "Wallet", icon: Wallet, end: false },
 ] as const;
 
@@ -61,7 +62,7 @@ export function AppShell({ me }: { me: Me }) {
 
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-2 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-3 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
         >
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink

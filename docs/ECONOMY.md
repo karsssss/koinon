@@ -102,6 +102,8 @@ Keys for natural mints are derived on the server and never come from the client.
 
 ## 6. Wagering and settlement
 
+> **Implemented** (`convex/bets.ts`, rules in `shared/domain/bets.ts`): directed challenges, counters, the 5-minute window, escrow, report/confirm, 48 h auto-confirm, jury and admin void. **Not yet:** open-to-all offers, judges, comments and reactions, push notifications.
+
 ### 6.1 Concepts
 - A **bet** is the long-lived object: a statement, its participants, a resolve-by time, comments, reactions, and an outcome.
 - An **offer** is one set of proposed terms inside a bet's negotiation. A bet's offers form a chain, and **at most one offer is open at a time**.
@@ -143,7 +145,7 @@ OPEN ───────┼── counter ─► new OPEN offer (roles swap: c
 - You can't bet against yourself. The judge can't be a participant.
 
 ### 6.4 Outcomes and settlement
-- The possible outcomes are `MAKER_A_WINS`, `PARTY_B_WINS`, and `VOID`. "A" is the original proposer and "B" is the counterparty. The labels don't change as offers swap makers.
+- The possible outcomes are `A_WINS`, `B_WINS`, and `VOID` (the names used in code). "A" is the original proposer and "B" is the counterparty. The labels don't change as offers swap makers.
 - **If a judge was named**: only the judge reports, and the report is final. It settles immediately.
 - **If no judge was named**:
   1. Either participant may report an outcome once the bet is `ACTIVE`. Early reports are fine, because the event might already be decided.
@@ -153,6 +155,7 @@ OPEN ───────┼── counter ─► new OPEN offer (roles swap: c
   - The result is the option with a **strict majority of votes cast, with at least 3 votes cast**.
   - Anything else settles as VOID.
   - Jurors get no reward. Each juror's vote is shown to the group after the bet closes.
+  - **[DEFAULT, set in implementation]** A juror's vote is final once cast. The jury closes early as soon as every eligible juror has voted. With fewer than 3 eligible jurors the quorum can't be met, so a disputed bet settles as VOID.
 - **Settlement**:
   - A winner receives `escrow` in full (`BET_PAYOUT`).
   - VOID refunds each side's own stake (two `BET_REFUND` postings).

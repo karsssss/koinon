@@ -12,6 +12,9 @@ const KIND_LABEL: Record<string, string> = {
   CHECKIN: "Daily check-in",
   DIGEST: "Daily digest",
   SEASON_REWARD: "Season reward",
+  BET_ESCROW: "Stake locked",
+  BET_REFUND: "Stake returned",
+  BET_PAYOUT: "Challenge won",
   ADJUSTMENT: "Adjustment",
 };
 
@@ -33,6 +36,7 @@ function History() {
                 <p className="truncate text-sm text-muted-foreground">
                   {formatGroupDay(e.groupDay)}
                   {e.memo && ` · “${e.memo}”`}
+                  {e.bet && ` · “${e.bet.statement}”`}
                 </p>
               </div>
               <Amount value={e.delta} signed className="font-medium" />
@@ -62,7 +66,14 @@ export function WalletPage() {
           <p className="mt-1 text-display font-semibold leading-none" data-testid="wallet-balance">
             {summary === undefined ? <span className="text-muted-foreground">–</span> : <Amount value={summary.balance} />}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">coins</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            coins
+            {summary !== undefined && summary.escrowed > 0 && (
+              <span data-testid="wallet-escrowed">
+                {" "}· <Amount value={summary.escrowed} /> locked in challenges
+              </span>
+            )}
+          </p>
         </div>
         <Button size="lg" onClick={() => setOpen(true)} disabled={summary === undefined}>
           Send coins

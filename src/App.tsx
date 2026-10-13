@@ -1,5 +1,5 @@
 import { AuthLoading, Authenticated, Unauthenticated, useMutation, useQuery } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { api } from "../convex/_generated/api";
 import { useAuthUi } from "./auth/context";
@@ -8,6 +8,11 @@ import { Screen } from "./components/Card";
 import { HomePage } from "./features/home/HomePage";
 import { WalletPage } from "./features/wallet/WalletPage";
 import { errorMessage } from "./lib/errors";
+
+// Route-level code splitting keeps the initial bundle within budget (DESIGN.md §6).
+const BetsPage = lazy(() => import("./features/bets/BetsPage").then((m) => ({ default: m.BetsPage })));
+const BetDetailPage = lazy(() => import("./features/bets/BetDetailPage").then((m) => ({ default: m.BetDetailPage })));
+const loading = <p className="text-muted-foreground">Loading…</p>;
 
 function Activate() {
   const activate = useMutation(api.members.activate);
@@ -41,6 +46,8 @@ function MemberGate() {
       <Routes>
         <Route element={<AppShell me={session.member} />}>
           <Route index element={<HomePage />} />
+          <Route path="bets" element={<Suspense fallback={loading}><BetsPage /></Suspense>} />
+          <Route path="bets/:betId" element={<Suspense fallback={loading}><BetDetailPage /></Suspense>} />
           <Route path="wallet" element={<WalletPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

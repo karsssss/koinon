@@ -87,3 +87,39 @@ export function settlementPostings(bet: MatchedBet, outcome: BetOutcome, rakeBps
   if (rake > 0) postings.push({ account: BURN_ACCOUNT, delta: rake });
   return { kind: "BET_PAYOUT", postings };
 }
+
+// ---- Challenge lifecycle rules (ECONOMY.md §6.2–6.4) ----
+
+/** [HARD] H7: an offer can be accepted for 5 minutes. */
+export const OFFER_WINDOW_MS = 5 * 60 * 1000;
+export const MAX_OFFERS_PER_CHAIN = 6;
+export const MAX_OPEN_OFFERS_PER_MAKER = 3;
+export const RESOLVE_BY_MIN_MS = 5 * 60 * 1000;
+export const RESOLVE_BY_MAX_MS = 30 * 24 * 60 * 60 * 1000;
+/** OD-5 default: a report with no response settles after 48 h. */
+export const AUTO_CONFIRM_MS = 48 * 60 * 60 * 1000;
+/** OD-5 default: a jury votes for 24 h; at least 3 votes and a strict majority, otherwise VOID. */
+export const JURY_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const JURY_QUORUM = 3;
+export const STATEMENT_MIN = 3;
+export const STATEMENT_MAX = 200;
+
+/** Returns null when the challenge terms are valid, otherwise a user-facing reason. */
+export function challengeTermsError(input: { statement: string; stakeA: number; stakeB: number; resolveBy: number; now: number }): string | null {
+  const statement = input.statement.trim();
+  if (statement.length < STATEMENT_MIN || statement.length > STATEMENT_MAX) return `The statement must be ${STATEMENT_MIN}–${STATEMENT_MAX} characters.`;
+  const stakes = stakeError(input.stakeA, input.stakeB);
+  if (stakes) return `Invalid stakes: ${stakes}.`;
+  const lead = input.resolveBy - input.now;
+  if (!Number.isFinite(lead) || lead < RESOLVE_BY_MIN_MS || lead > RESOLVE_BY_MAX_MS) return "Resolve-by must be between 5 minutes and 30 days from now.";
+  return null;
+}
+
+/** Jury result: the option with a strict majority of votes cast, with at least JURY_QUORUM votes; otherwise VOID. */
+export function tallyJury(votes: readonly BetOutcome[]): BetOutcome {
+  if (votes.length < JURY_QUORUM) return "VOID";
+  const counts = new Map<BetOutcome, number>();
+  for (const v of votes) counts.set(v, (counts.get(v) ?? 0) + 1);
+  for (const [outcome, n] of counts) if (n * 2 > votes.length) return outcome;
+  return "VOID";
+}

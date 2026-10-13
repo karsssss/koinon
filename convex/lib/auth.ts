@@ -17,7 +17,10 @@ export type ErrorCode =
   | "INVALID_ARGUMENT"
   | "INSUFFICIENT_FUNDS"
   | "IDEMPOTENCY_CONFLICT"
-  | "NOT_CONFIGURED";
+  | "NOT_CONFIGURED"
+  | "OFFER_EXPIRED"
+  | "INVALID_STATE"
+  | "LIMIT_REACHED";
 
 export function appError(code: ErrorCode, message: string): ConvexError<{ code: ErrorCode; message: string }> {
   return new ConvexError({ code, message });

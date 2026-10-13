@@ -16,6 +16,10 @@ export const recent = memberQuery({
       }
       return cache.get(id) ?? null;
     };
+    const betSummary = async (id: Id<"bets">) => {
+      const b = await ctx.db.get(id);
+      return b ? { _id: b._id, statement: b.statement } : null;
+    };
     return Promise.all(
       events.map(async (e) => ({
         _id: e._id,
@@ -24,6 +28,7 @@ export const recent = memberQuery({
         amount: e.amount ?? null,
         actor: await who(e.actorId),
         target: await who(e.targetId),
+        bet: e.betId ? await betSummary(e.betId) : null,
       })),
     );
   },

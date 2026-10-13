@@ -1,6 +1,6 @@
 # CURRENT
 
-Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Slice 1 implemented and tested locally**
+Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Challenges (P2P bets) implemented and tested locally**
 
 ## Done
 - Planning docs (`docs/`), plus the economy simulator (P3, [docs/SIMULATION.md](docs/SIMULATION.md)).
@@ -18,6 +18,18 @@ Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Slice 1 imple
   - `npm run build` ✓ (JS 165 KB gzip).
   - `npm run e2e`: **8/8**, 2 skipped by design. It runs the production build on a local backend at 360px and 1280px, and covers sign-in, check-in, two-user live sync, the transfer UI, the overdraft guard, and real-backend concurrency and duplicate requests. axe reports 0 WCAG A/AA violations.
 
+- **Challenges slice** (ECONOMY §6, ADR-016):
+  - **Negotiation:** directed challenges with two integer stakes; a 5-minute window that is re-checked when an offer is accepted, with a scheduled expiry; counter-offers (6 at most) that swap the maker and re-escrow; decline and withdraw.
+  - **Money:** escrow through the single ledger path; report → confirm settlement, with auto-confirm after 48 h.
+  - **Disputes:** jury of the non-participants (24 h, quorum 3, strict majority, otherwise VOID; votes are final and the jury closes early). An admin can void with a public reason.
+  - **Feed and history:** offered, accepted, settled and void events; wallet history names the challenge behind each entry.
+  - **UI:** Bets tab (Needs you / Your live / Group history), a new-challenge sheet, and a detail page with a live countdown and role-specific actions. Home shows "Needs you". Wallet shows coins locked in challenges.
+- **Verification (challenges slice):**
+  - `npm run typecheck` ✓, `npm run lint` ✓.
+  - `npm test`: **99/99**, including 17 new backend challenge tests.
+  - `npm run build` ✓: initial JS 167 KB gzip against a 170 KB budget, with the bet routes lazy-loaded.
+  - `npm run e2e`: **13/13**, 3 skipped by design: the full two-person challenge loop at 360px and desktop, decline, and real-backend races (concurrent accepts, accept vs withdraw). Every audit was clean and axe found no violations.
+
 ## Blockers (owner)
 | Blocker | Blocks |
 |---|---|
@@ -26,8 +38,8 @@ Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Slice 1 imple
 | OD-2 group timezone | Production `setup:initGroup` (demo uses UTC) |
 | OD-1 digest definition | Daily digest (+20) |
 
-## Not in this slice
-Digest, bets, push, seasons, PWA service worker, invite UI (the admin mutation exists), and rate limits.
+## Not built yet
+Push notifications (needed so the 5-minute window works when the app is closed), open-to-all offers, judges, comments and reactions, digest (OD-1), seasons, service worker, invite UI, rate limits.
 
 ## Readiness audit (2026-10-13)
 
@@ -44,7 +56,7 @@ Evidence:
 | **Implemented, not verified** | **Clerk sign-in.** The code is wired, but there were no keys to run it. Activation depends on the Clerk token carrying `email` (`convex/members.ts:49`). If it doesn't, nobody can join; the fix would be a Clerk session claim. |
 | **Mocked (by design)** | Demo sign-in and the 8 demo profiles (ADR-012); demo timezone is UTC |
 | **Partial** | PWA: manifest and SVG icon only. There is no service worker and no PNG `apple-touch-icon` for iOS. Admin invites: CLI only (`setup:invite`), no UI. |
-| **Missing** | Deployment (Convex cloud, Vercel), CI workflow, backups/export, transfer rate limit (PRD default), digest (OD-1), bets, push, seasons |
+| **Missing** | Deployment (Convex cloud, Vercel), CI workflow, backups/export, transfer rate limit (PRD default), digest (OD-1), push, seasons. (Challenges were added after this audit.) |
 
 ### Fixed in this audit (confirmed release blockers)
 1. **Real members could not be invited.** No UI or CLI path existed, and `invites.create` needs an authenticated admin. Fix: added `setup:invite`, sharing validation and the seat cap with `invites.create`. Tests added.
@@ -56,8 +68,8 @@ Evidence:
 3. Deploy to Vercel. Test sign-in in an **installed** PWA on iOS and Android.
 
 ### Can safely wait
-- **Ledger audit size.** It reads every posting (`convex/ledger/audit.ts:15`). It stays under Convex's 32k-document read limit for roughly a year at check-in and transfer volume, but bets will bring that limit closer. Paginate before P4 bets.
-- **JS budget.** Clerk is bundled even in demo mode; 165 of 170 KB is used. Lazy-load the auth provider when the budget binds.
+- **Ledger audit size.** It reads every posting (`convex/ledger/audit.ts:15`). Each settled challenge adds about 3–6 transactions (6–12 postings). At the simulator's medium rate of about 0.7 matched bets a day, the 32k-document read limit is still months away. Paginate it within the next few slices.
+- **JS budget.** Now 167 of 170 KB. Clerk is bundled even in demo mode. **The next UI feature should lazy-load the auth provider per mode**, since it no longer fits otherwise.
 - **Transfer rate limit, invite UI, PNG icons, service worker.**
 - **Weekly `npx convex export`.** Run it by hand until there is CI.
 
@@ -68,6 +80,6 @@ Evidence:
 - The only maintenance friction found is three tsconfigs (Node, bundler and Convex), each scoped by comment and include list.
 
 ## Next implementation task
-**P0 completion: alpha deploy readiness.** Add a GitHub Actions CI workflow (typecheck, lint, test, build), PNG and `apple-touch-icon` icons, and a deploy runbook (`docs/DEPLOY.md`: env vars, initGroup, invite, Clerk checks, export). Then do the first deploy once the owner has created the Clerk, Convex and Vercel accounts.
+**Make the 5-minute window work when the app isn't open:** Web Push (VAPID, a Convex Node action, a service worker via vite-plugin-pwa injectManifest, a subscription table, and an in-app inbox as the reliable fallback). Notify on offers, counters, reports to confirm, and jury duty. In the same slice, lazy-load the auth provider to restore JS budget headroom. Real-device testing (an installed iOS PWA) needs the owner's phone.
 
-After that: **P4 bets** (the digest stays blocked on OD-1), starting with paginating the ledger audit.
+Deploy readiness (CI, icons, runbook) can run in parallel once the owner has created the Clerk, Convex and Vercel accounts.

@@ -11,6 +11,22 @@ import type { QueryCtx } from "./_generated/server";
 
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 
+const LOCKED = ["active", "reported", "disputed"] as const;
+
+/** Coins of mine currently held in escrow: stakes in my open offers and in agreed, unsettled bets. */
+async function escrowedFor(ctx: QueryCtx, me: Id<"members">): Promise<number> {
+  let total = 0;
+  for (const o of await ctx.db.query("betOffers").withIndex("by_maker_status", (q) => q.eq("makerId", me).eq("status", "open")).collect()) {
+    const bet = await ctx.db.get(o.betId);
+    if (bet) total += bet.proposerId === me ? o.stakeA : o.stakeB;
+  }
+  for (const status of LOCKED) {
+    for (const b of await ctx.db.query("bets").withIndex("by_proposer_status", (q) => q.eq("proposerId", me).eq("status", status)).collect()) total += b.stakeA ?? 0;
+    for (const b of await ctx.db.query("bets").withIndex("by_counterparty_status", (q) => q.eq("counterpartyId", me).eq("status", status)).collect()) total += b.stakeB ?? 0;
+  }
+  return total;
+}
+
 /** Balance plus what the client needs to show today's claim state. The client derives "today" for display only. */
 export const summary = memberQuery({
   args: {},
@@ -24,6 +40,7 @@ export const summary = memberQuery({
     return {
       me: publicMember(ctx.me),
       balance: await walletBalance(ctx, ctx.me._id),
+      escrowed: await escrowedFor(ctx, ctx.me._id),
       lastCheckInDay: lastCheckIn?.groupDay ?? null,
       timezone: config.timezone,
       rolloverHour: config.rolloverHour,
@@ -51,9 +68,11 @@ export const history = memberQuery({
         const tx = await ctx.db.get(p.txId);
         if (tx === null) throw new Error(`posting ${p._id} has no transaction`);
         const counterpartyId = tx.kind === "TRANSFER" ? (p.delta < 0 ? tx.toMemberId : tx.fromMemberId) : undefined;
+        const bet = tx.betId ? await ctx.db.get(tx.betId) : null;
         return {
           _id: p._id,
           kind: tx.kind,
+          bet: bet ? { _id: bet._id, statement: bet.statement } : null,
           delta: p.delta,
           groupDay: tx.groupDay,
           at: tx._creationTime,

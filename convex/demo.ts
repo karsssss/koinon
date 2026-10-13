@@ -5,7 +5,7 @@ import { DEMO_ISSUER, DEMO_PROFILES, demoTokenIdentifier } from "../shared/demo"
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import { createMember } from "./model/members";
 
-const TABLES = ["feedEvents", "dailyClaims", "postings", "transactions", "accounts", "invites", "members", "ledgerAudits", "groupConfig"] as const;
+const TABLES = ["juryVotes", "betOffers", "bets", "feedEvents", "dailyClaims", "postings", "transactions", "accounts", "invites", "members", "ledgerAudits", "groupConfig"] as const;
 
 function assertDemoMode(): void {
   if (process.env.DEMO_MODE !== "true") {

@@ -70,4 +70,26 @@ test.describe("backend (real deployment)", () => {
     expect((await gus.query(api.wallet.summary, {})).balance).toBe(12);
     expect(runAudit()).toMatchObject({ ok: true, violations: [] });
   });
+
+  test("challenge races on the real backend: concurrent accepts escrow once; accept vs withdraw stays consistent", async () => {
+    const fen = await clientFor("demo-6");
+    const gus = await clientFor("demo-7");
+    await fen.mutation(api.daily.checkIn, {});
+    await gus.mutation(api.daily.checkIn, {});
+    const gusId = (await fen.query(api.members.list, {})).find((m) => m.displayName === "Gus")!._id;
+    const terms = { counterpartyId: gusId, statement: "race test", myStake: 5, theirStake: 5, resolveBy: Date.now() + 60 * 60 * 1000 };
+
+    const one = await fen.mutation(api.bets.create, { ...terms, requestId: "e2e-bet-race-01" });
+    const accepts = await Promise.all(Array.from({ length: 4 }, () => code(gus.mutation(api.bets.accept, { betId: one.betId }))));
+    expect(accepts.every((r) => r === "OK")).toBe(true);
+    expect((await gus.query(api.wallet.summary, {})).balance).toBe(6);
+
+    const two = await fen.mutation(api.bets.create, { ...terms, requestId: "e2e-bet-race-02" });
+    const [acc, wd] = await Promise.all([code(gus.mutation(api.bets.accept, { betId: two.betId })), code(fen.mutation(api.bets.withdraw, { betId: two.betId }))]);
+    expect([acc, wd].filter((r) => r === "OK")).toHaveLength(1);
+    const status = (await fen.query(api.bets.get, { betId: two.betId }))!.status;
+    const fenBalance = (await fen.query(api.wallet.summary, {})).balance;
+    expect(fenBalance).toBe(status === "active" ? 1 : 6);
+    expect(runAudit()).toMatchObject({ ok: true, violations: [] });
+  });
 });

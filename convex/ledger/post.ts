@@ -23,6 +23,7 @@ export interface PostSpec {
   readonly fromMemberId?: Id<"members">;
   readonly toMemberId?: Id<"members">;
   readonly memo?: string;
+  readonly betId?: Id<"bets">;
 }
 
 export async function postTransaction(ctx: MutationCtx, spec: PostSpec): Promise<{ txId: Id<"transactions">; replayed: boolean }> {
@@ -72,6 +73,7 @@ export async function postTransaction(ctx: MutationCtx, spec: PostSpec): Promise
     ...(spec.fromMemberId && { fromMemberId: spec.fromMemberId }),
     ...(spec.toMemberId && { toMemberId: spec.toMemberId }),
     ...(spec.memo && { memo: spec.memo }),
+    ...(spec.betId && { betId: spec.betId }),
   });
   for (const { account, delta } of spec.postings) {
     await ctx.db.insert("postings", { txId, accountKey: account, delta });

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { maxStake, settlementPostings, SPEC_DEFAULT_WAGER_CAP, stakeError, type BetOutcome, type MatchedBet } from "./bets.ts";
+import { challengeTermsError, maxStake, settlementPostings, SPEC_DEFAULT_WAGER_CAP, stakeError, tallyJury, type BetOutcome, type MatchedBet } from "./bets.ts";
 import { BURN_ACCOUNT, betEscrowAccount, walletAccount } from "./ledger.ts";
 
 const bet: MatchedBet = { betId: "x", partyA: "a", partyB: "b", stakeA: 50, stakeB: 20 };
@@ -54,5 +54,32 @@ describe("settlementPostings", () => {
       }),
       { seed: 7, numRuns: 300 },
     );
+  });
+});
+
+describe("challengeTermsError", () => {
+  const now = Date.parse("2026-10-13T12:00:00Z");
+  const ok = { statement: "Bo finishes the marathon", stakeA: 50, stakeB: 20, resolveBy: now + 60 * 60 * 1000, now };
+  it("accepts valid terms and rejects each bad field", () => {
+    expect(challengeTermsError(ok)).toBeNull();
+    expect(challengeTermsError({ ...ok, statement: "  x " })).toMatch(/statement/);
+    expect(challengeTermsError({ ...ok, statement: "x".repeat(201) })).toMatch(/statement/);
+    expect(challengeTermsError({ ...ok, stakeB: 2 })).toMatch(/ratio/);
+    expect(challengeTermsError({ ...ok, stakeA: 0 })).toMatch(/stakes/);
+    expect(challengeTermsError({ ...ok, resolveBy: now + 4 * 60 * 1000 })).toMatch(/Resolve-by/);
+    expect(challengeTermsError({ ...ok, resolveBy: now + 31 * 24 * 60 * 60 * 1000 })).toMatch(/Resolve-by/);
+    expect(challengeTermsError({ ...ok, resolveBy: Number.NaN })).toMatch(/Resolve-by/);
+  });
+});
+
+describe("tallyJury", () => {
+  it("needs a quorum of 3 and a strict majority; anything else is VOID", () => {
+    expect(tallyJury(["A_WINS", "A_WINS"])).toBe("VOID");
+    expect(tallyJury(["A_WINS", "A_WINS", "B_WINS"])).toBe("A_WINS");
+    expect(tallyJury(["A_WINS", "B_WINS", "VOID"])).toBe("VOID");
+    expect(tallyJury(["B_WINS", "B_WINS", "A_WINS", "A_WINS"])).toBe("VOID");
+    expect(tallyJury(["VOID", "VOID", "A_WINS"])).toBe("VOID");
+    expect(tallyJury(["B_WINS", "B_WINS", "B_WINS", "A_WINS", "A_WINS", "VOID"])).toBe("VOID");
+    expect(tallyJury(["B_WINS", "B_WINS", "B_WINS", "B_WINS", "A_WINS", "VOID"])).toBe("B_WINS");
   });
 });

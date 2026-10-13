@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { formatDuration, timeAgo } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
+import { BetRow } from "../bets/shared";
 
 function CheckInCard() {
   const summary = useQuery(api.wallet.summary);
@@ -93,6 +94,27 @@ function GroupBalances() {
   );
 }
 
+/** Challenges waiting on me (an offer to answer, a result to confirm, a jury vote). Hidden when empty. */
+function NeedsYou() {
+  const bets = useQuery(api.bets.list);
+  const waiting = (bets ?? []).filter((b) => b.needsMe);
+  if (waiting.length === 0) return null;
+  return (
+    <Card title="Needs you" labelledBy="needs-you-title" className="border-primary/50">
+      <ul className="divide-y" data-testid="needs-you">
+        {waiting.slice(0, 3).map((b) => (
+          <BetRow key={b._id} bet={b} />
+        ))}
+      </ul>
+      {waiting.length > 3 && (
+        <Link to="/bets" className="mt-2 inline-flex h-11 items-center text-sm text-primary">
+          See all {waiting.length}
+        </Link>
+      )}
+    </Card>
+  );
+}
+
 function ActivityFeed() {
   const events = useQuery(api.feed.recent);
   const now = useNow();
@@ -112,9 +134,18 @@ function ActivityFeed() {
                   sent coins to <span className="font-medium">{e.target?.displayName ?? "someone"}</span>
                 </>
               )}
+              {e.type === "bet_offered" && <>challenged <span className="font-medium">{e.target?.displayName ?? "someone"}</span></>}
+              {e.type === "bet_accepted" && <>accepted <span className="font-medium">{e.target?.displayName ?? "someone"}</span>'s challenge</>}
+              {e.type === "bet_settled" && <>won against <span className="font-medium">{e.target?.displayName ?? "someone"}</span></>}
+              {e.type === "bet_void" && <>'s challenge with <span className="font-medium">{e.target?.displayName ?? "someone"}</span> was voided</>}
+              {e.bet && (
+                <Link to={`/bets/${e.bet._id}`} className="block truncate text-muted-foreground underline-offset-4 hover:underline">
+                  “{e.bet.statement}”
+                </Link>
+              )}
               <span className="block text-xs text-muted-foreground">{timeAgo(e.at, now)}</span>
             </p>
-            {e.amount !== null && <Amount value={e.amount} signed={e.type === "checkin"} className="text-sm" />}
+            {e.amount !== null && <Amount value={e.amount} signed={e.type === "checkin" || e.type === "bet_settled"} className="text-sm" />}
           </li>
         ))}
       </ul>
@@ -128,6 +159,7 @@ export function HomePage() {
       <h1 className="sr-only">Home</h1>
       <div className="grid gap-4">
         <BalanceCard />
+        <NeedsYou />
         <CheckInCard />
         <ActivityFeed />
       </div>

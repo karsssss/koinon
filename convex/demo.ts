@@ -1,7 +1,7 @@
 // NON-PRODUCTION demo data. Internal functions only (callable from the CLI, never from clients),
 // and they refuse to run unless the deployment has DEMO_MODE=true.
 
-import { DEMO_PROFILES, demoTokenIdentifier } from "../shared/demo";
+import { DEMO_ISSUER, DEMO_PROFILES, demoTokenIdentifier } from "../shared/demo";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import { createMember } from "./model/members";
 
@@ -39,11 +39,15 @@ export const seed = internalMutation({
   },
 });
 
-/** Wipes every table and reseeds. Used before each E2E run. */
+/** Wipes every table and reseeds. Used before each E2E run. Refuses if any real (non-demo) member exists. */
 export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
     assertDemoMode();
+    const real = (await ctx.db.query("members").collect()).filter((m) => !m.tokenIdentifier.startsWith(`${DEMO_ISSUER}|`));
+    if (real.length > 0) {
+      throw new Error(`Refusing to reset: ${real.length} non-demo member(s) exist. This looks like a real group's data.`);
+    }
     for (const table of TABLES) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }

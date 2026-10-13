@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { isValidTimeZone } from "../shared/domain/time";
 import { internalMutation } from "./_generated/server";
+import { addInvite } from "./invites";
 
 /**
  * One-time group setup for a real deployment (run from the CLI, not callable by clients):
@@ -18,5 +19,20 @@ export const initGroup = internalMutation({
       return existing._id;
     }
     return ctx.db.insert("groupConfig", args);
+  },
+});
+
+/**
+ * Invites members from the CLI (there is no invite UI yet), with the same validation and seat cap as the
+ * admin mutation:
+ *   npx convex run setup:invite '{"invites":[{"email":"friend@example.com","displayName":"Sam"}]}'
+ * Each person also needs a Clerk invitation (Clerk dashboard) to be able to sign in.
+ */
+export const invite = internalMutation({
+  args: { invites: v.array(v.object({ email: v.string(), displayName: v.string() })) },
+  handler: async (ctx, args) => {
+    const ids = [];
+    for (const i of args.invites) ids.push(await addInvite(ctx, i));
+    return ids;
   },
 });

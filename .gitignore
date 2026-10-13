@@ -1,0 +1,4 @@
+node_modules/
+sim/out/
+*.log
+.DS_Store

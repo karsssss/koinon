@@ -4,6 +4,7 @@ sim/out/
 .DS_Store
 
 .env.local
+.env.*.local
 
 .convex/
 dist/

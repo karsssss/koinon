@@ -1,8 +1,15 @@
 # CURRENT
 
-Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Challenges (P2P bets) implemented and tested locally**
+Updated: 2026-10-14 · Branch `chore/clerk-cloud-dev-preview` · Phase: **Real Clerk sign-in verified on the Convex cloud dev deployment; Vercel preview config ready (not yet imported)**
 
 ## Done
+- **Real auth on cloud dev (2026-10-14):**
+  - Convex project `username-kaylater:koinon`. The local demo/E2E deployment is `local-username_kaylater-koinon` (`.env.local`, 8 demo profiles). Real sign-in uses the personal cloud dev deployment `dev/alexander-y` (`limitless-marten-493`, `.env.clerk.local`), with `DEMO_MODE=false`, `DEMO_JWKS=none`, `CLERK_JWT_ISSUER_DOMAIN` and `ADMIN_EMAIL` set. The prod deployment `hardy-blackbird-373` is untouched and has no env vars.
+  - The group was initialized once: "Koinon", `America/New_York` (**provisional**, OD-2), rollover 04:00, seat cap 8.
+  - Root cause of the first "private group" failure: the Clerk Convex integration's session token carried no `email`. Fixed in Clerk (customized session token: `email`, `email_verified`); documented in the README.
+  - Verified on the cloud deployment: the owner is an active admin; ledger genesis +1 plus check-ins on 2026-10-13 and 2026-10-14 (wallet 21 = mint −21); the nightly audit is `ok` with no violations.
+  - `vercel.json` (SPA rewrite, basic security headers, production deploys from `main` disabled) and a GitHub Actions CI (typecheck, lint, test, build on Node 24).
+  - Verification: typecheck ✓, lint ✓, `npm test` 99/99, build ✓ (167 KB gzip initial JS). E2E 13/13 (3 skipped by design) ran on 2026-10-13 after the env split; it was not re-run on 2026-10-14 because the local backend had been stopped for low memory. No app code changed since.
 - Planning docs (`docs/`), plus the economy simulator (P3, [docs/SIMULATION.md](docs/SIMULATION.md)).
 - **Slice 1: private PWA, first vertical slice**:
   - **App:** React 19, Vite 8 and Tailwind v4 with the DESIGN tokens and shadcn/ui (Radix). A responsive **Home** (balance, daily check-in, activity feed, group balances) and **Wallet** (balance, send coins, paginated history). Bottom tab bar on mobile; side nav at ≥1024px.
@@ -33,9 +40,9 @@ Updated: 2026-10-13 · Branch `feat/economy-simulator` · Phase: **Challenges (P
 ## Blockers (owner)
 | Blocker | Blocks |
 |---|---|
-| **Clerk application** (Invite-only mode, email code, Convex integration) and its publishable key | Real sign-in. Clerk keyless mode was removed (Aug 2026). |
-| Convex cloud project and Vercel project | Any non-local deployment |
-| OD-2 group timezone | Production `setup:initGroup` (demo uses UTC) |
+| ~~Clerk application~~ Done (dev instance). Still to check: sign-up mode set to **Restricted** (invite-only) | Strangers creating Clerk accounts (Convex still refuses them membership) |
+| **Vercel project import** and Preview env vars (Convex cloud dev is done) | The first online two-user playtest |
+| OD-2 group timezone (provisionally `America/New_York` on cloud dev) | Production `setup:initGroup` |
 | OD-1 digest definition | Daily digest (+20) |
 
 ## Not built yet
@@ -78,6 +85,9 @@ Evidence:
 - `shared/domain` is shared by the simulator and the backend, and the backend uses it.
 - Escrow accounts already exist in the ledger model. Games add a `TxKind`, a `refs` field and their own tables; no ledger redesign is needed.
 - The only maintenance friction found is three tsconfigs (Node, bundler and Convex), each scoped by comment and include list.
+
+## Next step (owner, no code)
+Import the repo into Vercel and set the Preview env vars (README → Vercel previews). Invite a second member on cloud dev with `npx convex run setup:invite '{"invites":[{"email":"…","displayName":"…"}]}' --env-file .env.clerk.local` (plus a Clerk invitation if sign-ups are restricted). Then run a two-person playtest: check-in, transfer, and a challenge with both people online, because the 5-minute window has no push yet.
 
 ## Next implementation task
 **Make the 5-minute window work when the app isn't open:** Web Push (VAPID, a Convex Node action, a service worker via vite-plugin-pwa injectManifest, a subscription table, and an in-app inbox as the reliable fallback). Notify on offers, counters, reports to confirm, and jury duty. In the same slice, lazy-load the auth provider to restore JS budget headroom. Real-device testing (an installed iOS PWA) needs the owner's phone.

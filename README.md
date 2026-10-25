@@ -44,4 +44,17 @@ npx playwright install chromium && npm run e2e  # production build + local backe
 npm run demo:reset                              # wipe and reseed the demo data
 ```
 
-Real sign-in uses Clerk (ADR-002). Set `VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, then set `CLERK_JWT_ISSUER_DOMAIN`, `DEMO_MODE=false` and `DEMO_JWKS=none` on the deployment (ADR-013). Run `npx convex run setup:initGroup` once with the group timezone (OD-2).
+Real sign-in uses Clerk (ADR-002). Set `VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, then set `CLERK_JWT_ISSUER_DOMAIN`, `DEMO_MODE=false` and `DEMO_JWKS=none` on the deployment (ADR-013). Membership matches the verified email in the Convex token, and the Clerk Convex integration does not include it by default: in Clerk → Sessions → Customize session token, add `{"email": "{{user.primary_email_address}}", "email_verified": "{{user.email_verified}}"}`. Run `npx convex run setup:initGroup` once with the group timezone (OD-2).
+
+Two local environments, kept apart:
+
+| | Demo / E2E | Real sign-in (cloud dev) |
+|---|---|---|
+| Env file | `.env.local` (`VITE_AUTH_MODE=demo`) | `.env.clerk.local` (gitignored; cloud URLs, `VITE_AUTH_MODE=clerk`, a deploy key scoped to the dev deployment) |
+| Backend | `npx convex dev` (local backend) | `npx convex deploy -y --env-file .env.clerk.local` |
+| Frontend | `npm run dev` | `npx vite --mode clerk` |
+| CLI | `npx convex run …` | `npx convex run … --env-file .env.clerk.local` |
+
+Don't run `npx convex dev --env-file .env.clerk.local`: `convex dev` rewrites `.env.local` to point at whatever it targets.
+
+Vercel previews (`vercel.json`) build the SPA only and use the cloud dev backend through Preview env vars. Production deploys from `main` are disabled until a production backend exists. Dashboard setup and the two-player verification gate: [docs/PLAYTEST.md](docs/PLAYTEST.md).

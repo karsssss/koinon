@@ -1,6 +1,13 @@
 # CURRENT
 
-Updated: 2026-10-14 · Branch `chore/clerk-cloud-dev-preview` · Phase: **Real Clerk sign-in verified on the Convex cloud dev deployment; Vercel preview config ready (not yet imported)**
+Updated: 2026-10-24 · Branch `chore/clerk-cloud-dev-preview` (pushed, PR into `main`) · Phase: **Preview ready to import; first two-player playtest pending**
+
+## Session 2026-10-24: preview checkpoint
+- Re-verified: typecheck ✓, lint ✓, `npm test` 99/99, build ✓ (167 KB gzip). History and tracked files hold no secrets.
+- Cloud dev (`limitless-marten-493`) checked: challenges code deployed; `DEMO_MODE=false`, `DEMO_JWKS=none`; `/demo-auth/token` returns 404. It has 1 active member (the admin) and no second invite yet.
+- Added [docs/PLAYTEST.md](docs/PLAYTEST.md): Clerk, Convex and Vercel dashboard steps, plus the 7-point verification gate (automated vs manual).
+- Access decision for Vercel Hobby: keep Vercel Authentication (Standard Protection) and give the tester one Shareable Link. Password Protection is Pro only. Installed-PWA testing would need protection disabled; the server-side membership gate is the real boundary either way.
+- **Owner next:** merge nothing yet. Run the PLAYTEST §1 steps (Clerk Restricted mode and invitation, `setup:invite`, Vercel import, Preview env vars, redeploy, share link), then run the §2 gate with the tester.
 
 ## Done
 - **Real auth on cloud dev (2026-10-14):**
@@ -41,7 +48,7 @@ Updated: 2026-10-14 · Branch `chore/clerk-cloud-dev-preview` · Phase: **Real C
 | Blocker | Blocks |
 |---|---|
 | ~~Clerk application~~ Done (dev instance). Still to check: sign-up mode set to **Restricted** (invite-only) | Strangers creating Clerk accounts (Convex still refuses them membership) |
-| **Vercel project import** and Preview env vars (Convex cloud dev is done) | The first online two-user playtest |
+| **Vercel project import** and Preview env vars (steps in docs/PLAYTEST.md §1) | The first online two-user playtest |
 | OD-2 group timezone (provisionally `America/New_York` on cloud dev) | Production `setup:initGroup` |
 | OD-1 digest definition | Daily digest (+20) |
 

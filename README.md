@@ -57,4 +57,4 @@ Two local environments, kept apart:
 
 Don't run `npx convex dev --env-file .env.clerk.local`: `convex dev` rewrites `.env.local` to point at whatever it targets.
 
-Vercel previews (`vercel.json`) build the SPA only and use the cloud dev backend through Preview env vars. Production deploys from `main` are disabled until a production backend exists.
+Vercel previews (`vercel.json`) build the SPA only and use the cloud dev backend through Preview env vars. Production deploys from `main` are disabled until a production backend exists. Dashboard setup and the two-player verification gate: [docs/PLAYTEST.md](docs/PLAYTEST.md).
